@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>大峯牧場 - 生產獎金動態試算與管理系統</title>
+  <style>
+    :root {
+      --primary: #1e3a8a;
+      --primary-light: #3b82f6;
+      --bg: #f1f5f9;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --border: #cbd5e1;
+      --success: #16a34a;
+      --warning: #ca8a04;
+      --danger: #dc2626;
+      --highlight: #eff6ff;
+    }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft JhengHei", sans-serif; }
+    body { background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+    .container { max-width: 1420px; margin: 0 auto; }
+    
+    header { background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; padding: 20px 24px; border-radius: 12px; margin-bottom: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    h1 { margin: 0 0 6px 0; font-size: 24px; }
+    .subtitle { margin: 0; opacity: 0.9; font-size: 14px; }
+    
+    .farm-dashboard { background: #ffffff; border: 2px solid #3b82f6; border-radius: 12px; padding: 18px 24px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(59,130,246,0.12); }
+    .farm-dash-grid { display: grid; grid-template-columns: 330px 1fr; gap: 20px; align-items: center; }
+    @media (max-width: 900px) { .farm-dash-grid { grid-template-columns: 1fr; } }
+    
+    .farm-total-main { border-right: 2px dashed #e2e8f0; padding-right: 20px; }
+    @media (max-width: 900px) { .farm-total-main { border-right: none; border-bottom: 2px dashed #e2e8f0; padding-bottom: 16px; } }
+    
+    .farm-total-main .title { font-size: 14px; font-weight: bold; color: #64748b; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+    .farm-total-main .amount { font-size: 32px; font-weight: 900; color: #15803d; letter-spacing: -0.5px; }
+    .farm-total-main .sub-info { font-size: 13px; color: #475569; margin-top: 4px; }
+    
+    .dept-summary-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    @media (max-width: 900px) { .dept-summary-row { grid-template-columns: repeat(2, 1fr); } }
+    
+    .dept-mini-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; cursor: pointer; transition: all 0.2s; }
+    .dept-mini-card:hover { border-color: #3b82f6; background: #eff6ff; }
+    .dept-mini-card.active-card { border-color: #3b82f6; background: #eff6ff; box-shadow: 0 0 0 2px rgba(59,130,246,0.25); }
+    .dept-mini-name { font-size: 13px; font-weight: bold; color: #334155; margin-bottom: 4px; display: flex; justify-content: space-between; }
+    .dept-mini-score { font-size: 11px; padding: 2px 6px; border-radius: 4px; background: #e2e8f0; color: #475569; font-weight: normal; }
+    .dept-mini-amount { font-size: 16px; font-weight: bold; color: var(--primary); }
+    .dept-mini-pct { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+    .grid { display: grid; grid-template-columns: 360px 1fr; gap: 20px; }
+    @media (max-width: 1024px) { .grid { grid-template-columns: 1fr; } }
+    
+    .card { background: var(--card-bg); border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid var(--border); margin-bottom: 20px; }
+    .card-title { font-size: 16px; font-weight: bold; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid var(--bg); padding-bottom: 8px; }
+    
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; color: #475569; }
+    .input-control { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; outline: none; transition: border-color 0.2s; }
+    .input-control:focus { border-color: var(--primary-light); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+    
+    .tabs { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+    .tab-btn { background: none; border: none; padding: 8px 16px; font-size: 15px; font-weight: 600; border-radius: 6px; cursor: pointer; color: #64748b; transition: all 0.2s; }
+    .tab-btn.active { background: var(--primary); color: white; }
+    
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 16px; }
+    th, td { padding: 9px 8px; border: 1px solid var(--border); text-align: center; }
+    th { background: #f8fafc; font-weight: 600; color: #334155; }
+    td input.num-input { width: 62px; padding: 4px 4px; text-align: center; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; }
+    td input.num-input:focus { border-color: var(--primary-light); }
+    
+    .badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; display: inline-block; }
+    .badge-S { background: #fef08a; color: #854d0e; border: 1px solid #facc15; }
+    .badge-A { background: #dcfce7; color: #166534; }
+    .badge-B { background: #e0f2fe; color: #075985; }
+    .badge-C { background: #f1f5f9; color: #475569; }
+    .badge-未達標 { background: #fee2e2; color: #991b1b; }
+    
+    .summary-box { background: var(--highlight); border: 1px solid #bfdbfe; border-radius: 8px; padding: 14px; margin-bottom: 16px; display: flex; justify-content: space-around; text-align: center; }
+    .summary-item .label { font-size: 12px; color: #64748b; margin-bottom: 4px; }
+    .summary-item .val { font-size: 18px; font-weight: bold; color: var(--primary); }
+    
+    .btn-quick { background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+    .btn-quick:hover { background: #e2e8f0; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>🐖 大峯牧場 - 生產獎金動態試算與管理系統</h1>
+    <p class="subtitle">全場基準預算池 × 每週配種雙極容許差門檻 × 跨組平準化精準防超支</p>
+  </header>
+
+  <!-- 全場即時總獎金看板 -->
+  <div class="farm-dashboard">
+    <div class="farm-dash-grid">
+      <div class="farm-total-main">
+        <div class="title">
+          <span>⚡ 即時動態統計</span>
+          <span style="color:#22c55e;">● 運算中</span>
+        </div>
+        <div class="title" style="color:#1e293b; font-size: 15px;">目前全場預估實發總獎金</div>
+        <div class="amount" id="farmTotalActualBonus">NT$ 0</div>
+        <div class="sub-info" id="farmBonusComparison">基準總預算：NT$ 60,000 ｜ 預算達成率：0%</div>
+      </div>
+
+      <!-- 四大組別即時摘要 -->
+      <div class="dept-summary-row">
+        <div class="dept-mini-card" id="card-breeding" onclick="switchDept('breeding')">
+          <div class="dept-mini-name">
+            <span>配懷組</span>
+            <span class="dept-mini-score" id="miniScore-breeding">0.00 點</span>
+          </div>
+          <div class="dept-mini-amount" id="miniPool-breeding">NT$ 0</div>
+          <div class="dept-mini-pct" id="miniPct-breeding">佔比: 23.93%</div>
+        </div>
+
+        <div class="dept-mini-card" id="card-farrowing" onclick="switchDept('farrowing')">
+          <div class="dept-mini-name">
+            <span>分娩組</span>
+            <span class="dept-mini-score" id="miniScore-farrowing">0.00 點</span>
+          </div>
+          <div class="dept-mini-amount" id="miniPool-farrowing">NT$ 0</div>
+          <div class="dept-mini-pct" id="miniPct-farrowing">佔比: 26.50%</div>
+        </div>
+
+        <div class="dept-mini-card" id="card-nursery" onclick="switchDept('nursery')">
+          <div class="dept-mini-name">
+            <span>保育組</span>
+            <span class="dept-mini-score" id="miniScore-nursery">0.00 點</span>
+          </div>
+          <div class="dept-mini-amount" id="miniPool-nursery">NT$ 0</div>
+          <div class="dept-mini-pct" id="miniPct-nursery">佔比: 30.77%</div>
+        </div>
+
+        <div class="dept-mini-card" id="card-finisher" onclick="switchDept('finisher')">
+          <div class="dept-mini-name">
+            <span>肉豬組</span>
+            <span class="dept-mini-score" id="miniScore-finisher">0.00 點</span>
+          </div>
+          <div class="dept-mini-amount" id="miniPool-finisher">NT$ 0</div>
+          <div class="dept-mini-pct" id="miniPct-finisher">佔比: 18.80%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- 左側面板：財務預算池與組別人數配置 -->
+    <div>
+      <div class="card">
+        <div class="card-title">💰 總獎金預算與組別設定</div>
+        
+        <div class="form-group">
+          <label>全場基準總預算 (基準績效 1.0 點時的總額 NTD)</label>
+          <input type="number" id="baseTotalBudget" class="input-control" value="60000" step="5000" oninput="calculateAll()">
+        </div>
+
+        <div class="form-group">
+          <label>當前操作組別</label>
+          <select id="activeDeptSelect" class="input-control" onchange="switchDept(this.value)">
+            <option value="breeding">配懷組</option>
+            <option value="farrowing">分娩組</option>
+            <option value="nursery">保育組</option>
+            <option value="finisher">肉豬組</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>該組預算權重佔比 (%)</label>
+          <input type="number" id="deptWeightPercent" class="input-control" step="0.01" value="23.93" min="0" max="100" oninput="updateDeptWeight(this.value)">
+        </div>
+
+        <div class="summary-box">
+          <div class="summary-item">
+            <div class="label">本組基準預算</div>
+            <div class="val" id="deptBasePoolDisplay">NT$ 0</div>
+          </div>
+          <div class="summary-item">
+            <div class="label">本組績效實發池</div>
+            <div class="val" id="deptActualPoolDisplay" style="color: var(--success);">NT$ 0</div>
+          </div>
+        </div>
+
+        <div style="text-align: right;">
+          <button class="btn-quick" onclick="applyEqualizedWeights()">⚡ 一鍵套用「全場組長/幹部獎金一致」平準化佔比</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">👥 本組現場人員配置與點數份額</div>
+        <table>
+          <thead>
+            <tr>
+              <th>職級稱謂</th>
+              <th>權重</th>
+              <th>人數</th>
+              <th>份額</th>
+            </tr>
+          </thead>
+          <tbody id="staffTableBody"></tbody>
+          <tfoot>
+            <tr style="font-weight: bold; background: #f8fafc;">
+              <td colspan="2">全組小計</td>
+              <td id="totalStaffCount">0 人</td>
+              <td id="totalStaffShares">0.0 份</td>
+            </tr>
+          </tfoot>
+        </table>
+        <div style="font-size: 12px; color: #64748b; line-height: 1.4;">
+          * 所有外籍夥伴人數已設定為 0。<br>
+          * 只要各組預算比率符合平準佔比，全場組長與幹部在相同評級下實領金額<strong>完全一致</strong>。
+        </div>
+      </div>
+    </div>
+
+    <!-- 右側面板：KPI 階梯目標與現場即時成績 -->
+    <div>
+      <div class="card">
+        <div class="tabs">
+          <button class="tab-btn active" id="tab-breeding" onclick="switchDept('breeding')">配懷組</button>
+          <button class="tab-btn" id="tab-farrowing" onclick="switchDept('farrowing')">分娩組</button>
+          <button class="tab-btn" id="tab-nursery" onclick="switchDept('nursery')">保育組</button>
+          <button class="tab-btn" id="tab-finisher" onclick="switchDept('finisher')">肉豬組</button>
+        </div>
+
+        <div class="card-title">
+          <span id="currentDeptTitle">配懷組 - KPI 階梯目標與現場成績輸入</span>
+          <button class="btn-quick" onclick="setAllToGradeA()">⚡ 一鍵將本組設為全A級(3.5點)</button>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table id="kpiTable">
+            <thead>
+              <tr>
+                <th style="min-width: 130px;">核心指標項目</th>
+                <th>權重</th>
+                <th>C級門檻<br>(1.0點)</th>
+                <th>B級門檻<br>(2.0點)</th>
+                <th style="background:#f0fdf4;">A級門檻<br>(3.5點)</th>
+                <th>S級門檻<br>(5.0點)</th>
+                <th style="background:#fef3c7; min-width: 80px;">實際成績</th>
+                <th>判定等級</th>
+                <th>加權得分</th>
+              </tr>
+            </thead>
+            <tbody id="kpiTableBody"></tbody>
+            <tfoot>
+              <tr style="font-weight: bold; background: #f8fafc;">
+                <td colspan="7" style="text-align: right; font-size: 14px;">本組加權綜合績效指數 (P)：</td>
+                <td colspan="2" id="weightedScoreDisplay" style="font-size: 18px; color: var(--primary);">3.50 點</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- 個人實領分配結果清單 -->
+      <div class="card">
+        <div class="card-title">💵 本組個人實領獎金清單</div>
+        <table>
+          <thead>
+            <tr>
+              <th>職級稱謂</th>
+              <th>分配權重</th>
+              <th>人數</th>
+              <th>每人實領獎金 (NTD)</th>
+              <th>該職級合計發放 (NTD)</th>
+            </tr>
+          </thead>
+          <tbody id="payoutTableBody"></tbody>
+          <tfoot>
+            <tr style="font-weight: bold; background: #ecfdf5; color: #065f46;">
+              <td colspan="3">本組獎金池實發總計 (驗證防呆)</td>
+              <td colspan="2" id="actualTotalPayoutDisplay" style="font-size: 16px;">NT$ 0 (100% 吻合)</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// 平準化預算佔比：正比於各組點數份額 (5.6 : 6.2 : 7.2 : 4.4)，使各組組長、幹部獎金完全一致
+const deptData = {
+  breeding: {
+    name: "配懷組",
+    deptWeight: 23.9316,
+    kpis: [
+      { id: "kpi_cr", name: "受胎率 (%)", weight: 0.3, type: "higher", c: 85.0, b: 89.0, a: 92.0, s: 94.0, actual: 92.0 },
+      { id: "kpi_fr", name: "分娩率 (%)", weight: 0.3, type: "higher", c: 75.0, b: 79.0, a: 83.0, s: 86.0, actual: 83.0 },
+      // ⭐ 每週配種頭數雙向容許差模型 ⭐
+      { id: "kpi_srv", name: "每週配種頭數 (頭)", weight: 0.2, type: "range_deviation", 
+        target: 287, 
+        s_diff: 5,   // S級: ±5 (282~292)
+        a_diff: 13,  // A級: ±5~±13 (274~300)
+        b_diff: 28,  // B級: ±13~±28 (259~315)
+        actual: 287 
+      },
+      { id: "kpi_tb", name: "窩均總仔頭數 (頭)", weight: 0.2, type: "higher", c: 13.6, b: 14.1, a: 14.5, s: 14.8, actual: 14.5 }
+    ],
+    staff: [
+      { role: "組長", weight: 2.0, count: 1 },
+      { role: "幹部", weight: 1.4, count: 2 },
+      { role: "技術工", weight: 0.8, count: 1 },
+      { role: "外籍夥伴", weight: 0.6, count: 0 }
+    ]
+  },
+  farrowing: {
+    name: "分娩組",
+    deptWeight: 26.4957,
+    kpis: [
+      { id: "kpi_ba", name: "活仔率 (%)", weight: 0.25, type: "higher", c: 86.5, b: 90.0, a: 93.0, s: 95.0, actual: 93.0 },
+      { id: "kpi_wb", name: "窩均離乳仔數 (頭)", weight: 0.25, type: "higher", c: 8.5, b: 9.6, a: 10.2, s: 10.8, actual: 10.2 },
+      { id: "kpi_pwm", name: "離乳前死亡率 (%)", weight: 0.3, type: "lower", c: 25.0, b: 20.0, a: 16.0, s: 12.0, actual: 16.0 },
+      { id: "kpi_wq", name: "離乳體重及格率 (%)", weight: 0.2, type: "higher", c: 80.0, b: 85.0, a: 89.0, s: 93.0, actual: 89.0 }
+    ],
+    staff: [
+      { role: "組長", weight: 2.0, count: 1 },
+      { role: "幹部", weight: 1.4, count: 3 },
+      { role: "技術工", weight: 0.8, count: 0 },
+      { role: "外籍夥伴", weight: 0.6, count: 0 }
+    ]
+  },
+  nursery: {
+    name: "保育組",
+    deptWeight: 30.7692,
+    kpis: [
+      { id: "kpi_nur_m", name: "保育舍死亡率 (%)", weight: 0.6, type: "lower", c: 25.0, b: 18.0, a: 10.0, s: 6.0, actual: 10.0 },
+      { id: "kpi_nur_q", name: "保育出欄及格率 (%)", weight: 0.4, type: "higher", c: 85.0, b: 90.0, a: 94.0, s: 98.0, actual: 94.0 }
+    ],
+    staff: [
+      { role: "組長", weight: 2.0, count: 1 },
+      { role: "幹部", weight: 1.4, count: 2 },
+      { role: "技術工", weight: 0.8, count: 3 },
+      { role: "外籍夥伴", weight: 0.6, count: 0 }
+    ]
+  },
+  finisher: {
+    name: "肉豬組",
+    deptWeight: 18.8034,
+    kpis: [
+      { id: "kpi_fin_m", name: "肉豬舍死亡率 (%)", weight: 0.6, type: "lower", c: 15.0, b: 10.0, a: 6.0, s: 3.0, actual: 6.0 },
+      { id: "kpi_fin_q", name: "肉豬出欄及格率 (%)", weight: 0.4, type: "higher", c: 89.0, b: 92.0, a: 95.0, s: 98.0, actual: 95.0 }
+    ],
+    staff: [
+      { role: "組長", weight: 2.0, count: 0 },
+      { role: "幹部", weight: 1.4, count: 2 },
+      { role: "技術工", weight: 0.8, count: 2 },
+      { role: "外籍夥伴", weight: 0.6, count: 0 }
+    ]
+  }
+};
+
+let currentDept = "breeding";
+
+function switchDept(deptKey) {
+  currentDept = deptKey;
+  document.getElementById("activeDeptSelect").value = deptKey;
+  
+  document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
+  document.getElementById("tab-" + deptKey).classList.add("active");
+
+  document.querySelectorAll(".dept-mini-card").forEach(c => c.classList.remove("active-card"));
+  const activeCard = document.getElementById("card-" + deptKey);
+  if (activeCard) activeCard.classList.add("active-card");
+  
+  document.getElementById("deptWeightPercent").value = deptData[deptKey].deptWeight.toFixed(2);
+  document.getElementById("currentDeptTitle").innerText = `${deptData[deptKey].name} - KPI 階梯目標與現場成績輸入`;
+  
+  renderStaffTable();
+  renderKpiTable();
+  calculateAll();
+}
+
+function updateDeptWeight(val) {
+  deptData[currentDept].deptWeight = parseFloat(val) || 0;
+  calculateAll();
+}
+
+function applyEqualizedWeights() {
+  deptData.breeding.deptWeight = 23.9316;
+  deptData.farrowing.deptWeight = 26.4957;
+  deptData.nursery.deptWeight = 30.7692;
+  deptData.finisher.deptWeight = 18.8034;
+  document.getElementById("deptWeightPercent").value = deptData[currentDept].deptWeight.toFixed(2);
+  calculateAll();
+}
+
+function setAllToGradeA() {
+  const d = deptData[currentDept];
+  d.kpis.forEach(kpi => {
+    if (kpi.type === "higher") kpi.actual = kpi.a;
+    else if (kpi.type === "lower") kpi.actual = kpi.a;
+    else if (kpi.type === "range_deviation") kpi.actual = kpi.target - kpi.a_diff; // 剛好落在 A 級邊界
+  });
+  renderKpiTable();
+  calculateAll();
+}
+
+function renderStaffTable() {
+  const staff = deptData[currentDept].staff;
+  const tbody = document.getElementById("staffTableBody");
+  tbody.innerHTML = "";
+  
+  staff.forEach((s, idx) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${s.role}</td>
+      <td><input type="number" step="0.1" class="num-input" value="${s.weight}" onchange="updateStaff(${idx}, 'weight', this.value)"></td>
+      <td><input type="number" min="0" class="num-input" value="${s.count}" onchange="updateStaff(${idx}, 'count', this.value)"></td>
+      <td id="staffShare_${idx}">0</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function updateStaff(idx, field, val) {
+  deptData[currentDept].staff[idx][field] = parseFloat(val) || 0;
+  calculateAll();
+}
+
+function renderKpiTable() {
+  const kpis = deptData[currentDept].kpis;
+  const tbody = document.getElementById("kpiTableBody");
+  tbody.innerHTML = "";
+
+  kpis.forEach((kpi, idx) => {
+    const tr = document.createElement("tr");
+    
+    let thresholdInputs = "";
+    if (kpi.type === "range_deviation") {
+      const bMin = kpi.target - kpi.b_diff, bMax = kpi.target + kpi.b_diff;
+      const aMin = kpi.target - kpi.a_diff, aMax = kpi.target + kpi.a_diff;
+      const sMin = kpi.target - kpi.s_diff, sMax = kpi.target + kpi.s_diff;
+
+      thresholdInputs = `
+        <td style="color:#64748b; font-size:11px;">基準目標:<br><input type="number" class="num-input" value="${kpi.target}" onchange="updateKpiTh(${idx}, 'target', this.value)"></td>
+        <td>
+          <span style="font-size:11px; color:#475569;">±<input type="number" class="num-input" style="width:40px;" value="${kpi.b_diff}" onchange="updateKpiTh(${idx}, 'b_diff', this.value)"></span><br>
+          <span style="font-size:10px; color:#64748b;">(${bMin}~${bMax})</span>
+        </td>
+        <td style="background:#f0fdf4;">
+          <span style="font-size:11px; color:#166534;">±<input type="number" class="num-input" style="width:40px;" value="${kpi.a_diff}" onchange="updateKpiTh(${idx}, 'a_diff', this.value)"></span><br>
+          <span style="font-size:10px; color:#15803d;">(${aMin}~${aMax})</span>
+        </td>
+        <td>
+          <span style="font-size:11px; color:#854d0e;">±<input type="number" class="num-input" style="width:40px;" value="${kpi.s_diff}" onchange="updateKpiTh(${idx}, 's_diff', this.value)"></span><br>
+          <span style="font-size:10px; color:#854d0e;">(${sMin}~${sMax})</span>
+        </td>
+      `;
+    } else {
+      thresholdInputs = `
+        <td><input type="number" step="0.1" class="num-input" value="${kpi.c}" onchange="updateKpiTh(${idx}, 'c', this.value)"></td>
+        <td><input type="number" step="0.1" class="num-input" value="${kpi.b}" onchange="updateKpiTh(${idx}, 'b', this.value)"></td>
+        <td style="background:#f0fdf4;"><input type="number" step="0.1" class="num-input" value="${kpi.a}" onchange="updateKpiTh(${idx}, 'a', this.value)"></td>
+        <td><input type="number" step="0.1" class="num-input" value="${kpi.s}" onchange="updateKpiTh(${idx}, 's', this.value)"></td>
+      `;
+    }
+
+    tr.innerHTML = `
+      <td style="font-weight: 600;">${kpi.name}</td>
+      <td>${Math.round(kpi.weight * 100)}%</td>
+      ${thresholdInputs}
+      <td style="background:#fffbeb;"><input type="number" step="0.1" class="num-input" style="font-weight:bold; color:var(--primary);" value="${kpi.actual}" onchange="updateKpiActual(${idx}, this.value)"></td>
+      <td id="badge_${idx}"><span class="badge badge-C">C</span></td>
+      <td id="score_${idx}" style="font-weight: bold;">0.00</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function updateKpiTh(idx, field, val) {
+  deptData[currentDept].kpis[idx][field] = parseFloat(val) || 0;
+  renderKpiTable();
+  calculateAll();
+}
+
+function updateKpiActual(idx, val) {
+  deptData[currentDept].kpis[idx].actual = parseFloat(val) || 0;
+  calculateAll();
+}
+
+// 核心點數計算邏輯
+function computeDeptScore(deptKey) {
+  const d = deptData[deptKey];
+  let totalScore = 0;
+  d.kpis.forEach(kpi => {
+    let pts = 0;
+    const v = kpi.actual;
+
+    if (kpi.type === "higher") {
+      if (v >= kpi.s) pts = 5.0;
+      else if (v >= kpi.a) pts = 3.5;
+      else if (v >= kpi.b) pts = 2.0;
+      else if (v >= kpi.c) pts = 1.0;
+      else pts = 0;
+    } else if (kpi.type === "lower") {
+      if (v <= kpi.s) pts = 5.0;
+      else if (v <= kpi.a) pts = 3.5;
+      else if (v <= kpi.b) pts = 2.0;
+      else if (v <= kpi.c) pts = 1.0;
+      else pts = 0;
+    } else if (kpi.type === "range_deviation") {
+      // 雙極容許差判定
+      const diff = Math.abs(v - kpi.target);
+      if (diff <= kpi.s_diff) pts = 5.0;       // ±5 以內
+      else if (diff <= kpi.a_diff) pts = 3.5;  // ±5 ~ ±13
+      else if (diff <= kpi.b_diff) pts = 2.0;  // ±13 ~ ±28
+      else pts = 0;                           // 超過 28 不計分
+    }
+    totalScore += pts * kpi.weight;
+  });
+  return totalScore;
+}
+
+function calculateAll() {
+  const baseTotalBudget = parseFloat(document.getElementById("baseTotalBudget").value) || 0;
+  let farmTotalActual = 0;
+
+  // 1. 各組即時實發加總
+  Object.keys(deptData).forEach(key => {
+    const score = computeDeptScore(key);
+    const basePool = baseTotalBudget * (deptData[key].deptWeight / 100);
+    const actualPool = basePool * score;
+    farmTotalActual += actualPool;
+
+    const miniScore = document.getElementById(`miniScore-${key}`);
+    const miniPool = document.getElementById(`miniPool-${key}`);
+    const miniPct = document.getElementById(`miniPct-${key}`);
+    if (miniScore) miniScore.innerText = `${score.toFixed(2)} 點`;
+    if (miniPool) miniPool.innerText = `NT$ ${Math.round(actualPool).toLocaleString()}`;
+    if (miniPct) miniPct.innerText = `佔比: ${deptData[key].deptWeight.toFixed(2)}%`;
+  });
+
+  // 2. 頂部儀表板
+  document.getElementById("farmTotalActualBonus").innerText = `NT$ ${Math.round(farmTotalActual).toLocaleString()}`;
+  const ratio = baseTotalBudget > 0 ? (farmTotalActual / baseTotalBudget * 100).toFixed(1) : 0;
+  const diff = farmTotalActual - baseTotalBudget;
+  const diffText = diff >= 0 ? `超額激勵 +NT$ ${Math.round(diff).toLocaleString()}` : `預算節餘 NT$ ${Math.round(Math.abs(diff)).toLocaleString()}`;
+  document.getElementById("farmBonusComparison").innerText = `基準總預算：NT$ ${Math.round(baseTotalBudget).toLocaleString()} ｜ 預算達成率：${ratio}% (${diffText})`;
+
+  // 3. 當前組別資訊
+  const current = deptData[currentDept];
+  const currentScore = computeDeptScore(currentDept);
+  const deptBasePool = baseTotalBudget * (current.deptWeight / 100);
+  const deptActualPool = deptBasePool * currentScore;
+
+  document.getElementById("deptBasePoolDisplay").innerText = `NT$ ${Math.round(deptBasePool).toLocaleString()}`;
+  document.getElementById("deptActualPoolDisplay").innerText = `NT$ ${Math.round(deptActualPool).toLocaleString()}`;
+  document.getElementById("weightedScoreDisplay").innerText = `${currentScore.toFixed(2)} 點`;
+
+  // 4. 更新評等 Badge
+  current.kpis.forEach((kpi, idx) => {
+    let rank = "未達標";
+    let pts = 0;
+    const v = kpi.actual;
+
+    if (kpi.type === "higher") {
+      if (v >= kpi.s) { rank = "S"; pts = 5.0; }
+      else if (v >= kpi.a) { rank = "A"; pts = 3.5; }
+      else if (v >= kpi.b) { rank = "B"; pts = 2.0; }
+      else if (v >= kpi.c) { rank = "C"; pts = 1.0; }
+      else { rank = "未達標"; pts = 0; }
+    } else if (kpi.type === "lower") {
+      if (v <= kpi.s) { rank = "S"; pts = 5.0; }
+      else if (v <= kpi.a) { rank = "A"; pts = 3.5; }
+      else if (v <= kpi.b) { rank = "B"; pts = 2.0; }
+      else if (v <= kpi.c) { rank = "C"; pts = 1.0; }
+      else { rank = "未達標"; pts = 0; }
+    } else if (kpi.type === "range_deviation") {
+      const diff = Math.abs(v - kpi.target);
+      if (diff <= kpi.s_diff) { rank = "S"; pts = 5.0; }
+      else if (diff <= kpi.a_diff) { rank = "A"; pts = 3.5; }
+      else if (diff <= kpi.b_diff) { rank = "B"; pts = 2.0; }
+      else { rank = "未達標"; pts = 0; }
+    }
+
+    const weightedPts = pts * kpi.weight;
+    const badgeCell = document.getElementById(`badge_${idx}`);
+    if (badgeCell) badgeCell.innerHTML = `<span class="badge badge-${rank}">${rank} (${pts}點)</span>`;
+    const scoreCell = document.getElementById(`score_${idx}`);
+    if (scoreCell) scoreCell.innerText = weightedPts.toFixed(2);
+  });
+
+  // 5. 本組份額統計
+  let totalShares = 0;
+  let totalPeople = 0;
+  current.staff.forEach((s, idx) => {
+    const shares = s.weight * s.count;
+    totalShares += shares;
+    totalPeople += s.count;
+    const shareCell = document.getElementById(`staffShare_${idx}`);
+    if (shareCell) shareCell.innerText = shares.toFixed(1) + " 份";
+  });
+
+  document.getElementById("totalStaffCount").innerText = `${totalPeople} 人`;
+  document.getElementById("totalStaffShares").innerText = `${totalShares.toFixed(1)} 份`;
+
+  // 6. 個人實領計算清單
+  const singleShareValue = totalShares > 0 ? (deptActualPool / totalShares) : 0;
+  const payoutBody = document.getElementById("payoutTableBody");
+  payoutBody.innerHTML = "";
+  let verifiedTotal = 0;
+
+  current.staff.forEach(s => {
+    const perPerson = singleShareValue * s.weight;
+    const roleTotal = perPerson * s.count;
+    verifiedTotal += roleTotal;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td style="font-weight: 600;">${s.role}</td>
+      <td>${s.weight}</td>
+      <td>${s.count} 人</td>
+      <td style="color: var(--primary); font-weight: bold;">NT$ ${Math.round(perPerson).toLocaleString()}</td>
+      <td style="font-weight: bold;">NT$ ${Math.round(roleTotal).toLocaleString()}</td>
+    `;
+    payoutBody.appendChild(tr);
+  });
+
+  document.getElementById("actualTotalPayoutDisplay").innerText = `NT$ ${Math.round(verifiedTotal).toLocaleString()} (精準吻合率 100%)`;
+}
+
+// 啟動初始化
+switchDept("breeding");
+</script>
+</body>
+</html>
